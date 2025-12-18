@@ -1,10 +1,9 @@
-import { applyJob, cancelJob, submitJob, useFirebaseData, WriteUserLocationData } from "@/useFirebaseData"; // 수정된 함수 임포트
+import { applyJob, cancelJob, submitJob, useFirebaseData, WriteUserLocationData } from "@/useFirebaseData";
 import { Picker } from "@react-native-picker/picker";
 import { navigate } from "expo-router/build/global-state/routing";
 import { getAuth } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-// cancelJob 등을 추가 구현했다면 import 하세요. 지금은 간단히 Alert만 띄웁니다.
 
 const catagory_name = [
     { id: 1, name: "판매·홍보 지원" },
@@ -32,35 +31,33 @@ const location_name = [
 
 export default function PersonalHome() {
 
+    // TODO: 취소버튼 다시 만들어야함? / 시골 위치 우선으로 뜨게 하기
+
     const auth = getAuth();
     const [searchText, setSearchText] = useState("");
 
     const { data, loading } = useFirebaseData("jobs");
     const { data: userData, loading: userLoading} = useFirebaseData("userInfo/" + auth.currentUser?.uid)
     
-    const [myAppliedJobs, setMyAppliedJobs] = useState<any[]>([]); // 내가 지원한 일
-    const [recruitingJobs, setRecruitingJobs] = useState<any[]>([]); // 모집중인 모든 일
+    const [myAppliedJobs, setMyAppliedJobs] = useState<any[]>([]);
+    const [recruitingJobs, setRecruitingJobs] = useState<any[]>([]); 
 
     const [catagoryModal, setCatagoryModal] = useState(false)
     const [catagoryModalTitle, setCatagoryModalTitle] = useState("")
 
-    const [selectedJob, setSelectedJob] = useState<any>(null); // 선택된 작업 객체
+    const [selectedJob, setSelectedJob] = useState<any>(null);
     const [todoModal, setTodoModal] = useState(false);
 
     const [userLocation, setUserLocation] = useState("");
     const [locationModal, setLocationModal] = useState(false);
 
-    // TODO: 취소버튼 다시 만들어야함? / 시골 위치 우선으로 뜨게 하기
-
     useEffect(() => {
         if (!loading && data) {
             const allJobs = Object.entries(data).map(([key, value]: [string, any]) => ({ id: key, ...value }));
             
-            // 1. 내가 지원한 일 필터링
             const myJobs = allJobs.filter(job => (job.applicantId === auth.currentUser?.uid && job.status !== "completed"));
             setMyAppliedJobs(myJobs);
 
-            // 2. 모집중인 일 필터링
             const available = allJobs.filter(job => job.status === 'recruiting');
             setRecruitingJobs(available);
 
@@ -100,13 +97,12 @@ export default function PersonalHome() {
         if (selectedJob) {
             applyJob(selectedJob.id, auth.currentUser?.uid);
             setTodoModal(false);
-            setCatagoryModal(false); // 카테고리 모달도 닫기
+            setCatagoryModal(false);
             Alert.alert("성공", "작업 신청이 완료되었습니다.");
         }
     }
 
     const handleCancel = (job: any) => {
-        // Alert.alert("작업 취소", "취소 기능은 아직 구현되지 않았습니다. 기업에게 문의하세요.");
         Alert.alert("작업 취소", "이 작업을 취소하시겠습니까?", [
             { text: "아니오", },
             { text: "예", onPress: () => {if (job.status !== 'submitted') cancelJob(job.id); else Alert.alert("오류", "평가중인 작업은 취소할 수 없습니다!"); }}
@@ -131,7 +127,6 @@ export default function PersonalHome() {
             <View style={style.main}>
                 <TextInput value={searchText} onChangeText={setSearchText} style={style.search_bar} placeholder="검색"/>
                 
-                {/* 카테고리 선택 영역 */}
                 <View style={style.catagory_container}>
                     <Text style={style.catagory_title}>카테고리 (일감 찾기)</Text>
                     <FlatList 
@@ -147,7 +142,6 @@ export default function PersonalHome() {
                     )}/>
                 </View>
 
-                {/* 내 작업 영역 */}
                 <View style={style.work_container}>
                     <Text style={style.work_title}>현재 진행중인 작업</Text>
                     {loading ? <Text>로딩중...</Text> : myAppliedJobs.length === 0 ? 
@@ -194,7 +188,6 @@ export default function PersonalHome() {
                 </View>
             </View>
 
-            {/* 카테고리 상세 모달 (지원 가능한 목록) */}
             <Modal animationType="slide" transparent={false} visible={catagoryModal} onRequestClose={() => {setCatagoryModal(false)}}>
                 <View style={{flex:1, padding: 20, paddingTop: 50}}>
                     <Text style={{fontSize:24, marginBottom: 20, alignSelf:'center'}}>{catagoryModalTitle}</Text>
@@ -219,7 +212,6 @@ export default function PersonalHome() {
                 </View>
             </Modal>
 
-            {/* 지원 확인 모달 */}
             <Modal animationType="slide" transparent={true} visible={todoModal} onRequestClose={() => {setTodoModal(false)}}>
                 <View style={modal_style.centeredView}>
                     <View style={modal_style.modalView}>
@@ -262,7 +254,6 @@ export default function PersonalHome() {
 }
 
 const style = StyleSheet.create({
-    // ... 기존 스타일 유지 ...
     container: {
         flex: 1,
         display: "flex",
@@ -345,7 +336,6 @@ const style = StyleSheet.create({
     }
 })
 
-// 모달 스타일 추가/수정
 const modal_style = StyleSheet.create({
     centeredView: {
         flex: 1,
