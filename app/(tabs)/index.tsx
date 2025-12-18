@@ -1,98 +1,96 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Redirect } from "expo-router";
+import { getAuth } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFirebaseData, WriteUserInfoData } from "../../useFirebaseData.js";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function Index() {
 
-export default function HomeScreen() {
+  const auth = getAuth();
+  const { data, loading } = useFirebaseData("userInfo/" + auth.currentUser?.uid);
+  const [userType, setUserType] = useState("유저 정보 로딩중");
+  const [typeModalVisible, setTypeModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (data?.type == null) setTypeModalVisible(true);
+    else {
+      setTypeModalVisible(false);
+      setUserType(data?.type);
+    }
+  }, [data]);
+
+  const onPressUserTypeModal = (type: "firm" | "personal") => {
+    WriteUserInfoData(auth.currentUser?.uid, type);
+    setTypeModalVisible(false);
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    <SafeAreaView style={style.container}>
+      <Text style={style.title}>Jobayou</Text>
+      {loading ? <Text>데이터 로딩중</Text> : 
+        <Text>{userType === "firm" ? "기업" : "사용자"}으로 확인됨</Text>
+      }
+      {userType === "firm" ? <Redirect href={"/(tabs)/firmHome"}/> : userType === "personal" ? <Redirect href={"/(tabs)/personalHome"}/> : <Text>오류: 사용자 타입이 확인되지 않음</Text> }
+      <Modal animationType="slide" transparent={false} visible={typeModalVisible} onRequestClose={() => {setTypeModalVisible(false)}}>
+        <View style={modal_style.container}>
+          <Text style={modal_style.title}>사용자 타입을 선택하세요</Text>
+          <View style={modal_style.selection_container}>
+            <TouchableOpacity style={modal_style.selection_button} onPress={() => {onPressUserTypeModal("firm")}}>
+              <Text style={modal_style.selection_button_text}>기업</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={modal_style.selection_button} onPress={() => {onPressUserTypeModal("personal")}}>
+              <Text style={modal_style.selection_button_text}>사용자</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  )
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+const style = StyleSheet.create({
+  container: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    width: "100%",
+    height: "100%"
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  title: {
+    color: "black",
+    fontSize: 30,
+    marginBottom: 20
+  }
+})
+
+const modal_style = StyleSheet.create({
+  container: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center"
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    fontSize: 30
   },
-});
+  selection_container: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 20,
+    marginTop: 30
+  },
+  selection_button: {
+    borderWidth: 1,
+    width: "25%",
+    aspectRatio: 0.95,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  selection_button_text: {
+    fontSize: 20
+  }
+})
