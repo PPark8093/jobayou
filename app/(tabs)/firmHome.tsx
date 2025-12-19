@@ -22,11 +22,13 @@ const catagory_name = [
 ]
 
 const location_name = [
-    { id: 1, name: "경상북도 영양군" },
-    { id: 2, name: "경상북도 의성군" },
-    { id: 3, name: "전라남도 고흥군" },
-    { id: 4, name: "경상북도 봉화군" },
-    { id: 5, name: "경상남도 합천군" }
+    { id: 1, name: "경상북도 영양군", countryside: true },
+    { id: 2, name: "경상북도 의성군", countryside: true },
+    { id: 3, name: "전라남도 고흥군", countryside: true },
+    { id: 4, name: "경상북도 봉화군", countryside: true },
+    { id: 5, name: "경상남도 합천군", countryside: true },
+    { id: 6, name: "대구광역시 달성군", countryside: false },
+    { id: 7, name: "서울특별시 서초구", countryside: false }
 ]
 
 export default function FirmHome() {
@@ -101,9 +103,12 @@ export default function FirmHome() {
         }
 
         console.log("평가 점수:", rating);
+
+        const loc = location_name.find(l => l.name === evaluateJob.location);
+        console.log(true)
         
         // 2. 함수 실행
-        completeJob(evaluateJob.applicantId, evaluateJob.id, rating, evaluateJob.difficulty, evaluateJob.category);
+        completeJob(evaluateJob.applicantId, evaluateJob.id, rating, evaluateJob.difficulty, evaluateJob.category, loc?.countryside);
         
         // 3. 모달 닫기 및 초기화
         setEvaluateModal(false);

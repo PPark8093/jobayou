@@ -39,12 +39,13 @@ const catagory_exp_map = {
 
 export default function Portfolio() {
 
-    // TODO: 레벨 기준 표 추가하기
+    // TODO: 레벨 기준 표 추가?
 
     const auth = getAuth();
     const { data: userData, loading: userLoading} = useFirebaseData("userInfo/" + auth.currentUser?.uid)
     const [userExp, setUserExp] = useState(0);
     const [catagoryExp, setCatagoryExp] = useState({...catagory_exp_map});
+    const [countrysideExp, setCountrysideExp] = useState(0);
 
     const { data, loading } = useFirebaseData("jobs");
     const [myCompletedJobs, setMyCompletedJobs] = useState<any[]>([]); 
@@ -63,6 +64,7 @@ export default function Portfolio() {
         if (userData && !userLoading) {
             setUserExp(userData.exp);
             setCatagoryExp(Object.entries(userData.catagoryExp));
+            setCountrysideExp(userData.countrysideExp);
         }
     }, [userData, userLoading])
 
@@ -81,6 +83,7 @@ export default function Portfolio() {
     };
 
     const currentProgress = getLevelProgress(userExp);
+    const currentCountrysideProgress = getLevelProgress(countrysideExp);
 
     return (
         <View style={{flex: 1}}> 
@@ -96,9 +99,13 @@ export default function Portfolio() {
                     <Text style={{fontSize: 25, fontWeight: "bold", marginBottom: 10}}>현재 레벨: Lv.{currentProgress * 10}</Text>
                     <Progress.Bar width={200} height={26} style={{marginBottom: 10}} progress={currentProgress - 0.1} borderRadius={0}/>
                 </View>
+
+                <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
+                    <Text style={{fontSize: 25, fontWeight: "bold", marginBottom: 10}}>지방 공헌 경험치</Text>
+                    <Progress.Bar width={200} height={26} style={{marginBottom: 10}} progress={currentCountrysideProgress - 0.1} borderRadius={0}/>
+                </View>
                 
                 <Text style={{fontSize: 25, fontWeight: "bold", marginBottom: 10}}>카테고리별 숙련도</Text>
-                
                 <View style={{ marginBottom: 20 }}>
                     {catagory_name.map((item) => {
                         // [중요] 실제 DB 데이터(userData)에서 해당 카테고리 경험치를 가져옴

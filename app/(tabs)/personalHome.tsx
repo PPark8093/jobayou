@@ -26,12 +26,13 @@ const location_name = [
     { id: 3, name: "전라남도 고흥군", countryside: true },
     { id: 4, name: "경상북도 봉화군", countryside: true },
     { id: 5, name: "경상남도 합천군", countryside: true },
-    { id: 6, name: "경상북도 대구광역시", countryside: false }
+    { id: 6, name: "대구광역시 달성군", countryside: false },
+    { id: 7, name: "서울특별시 서초구", countryside: false }
 ]
 
 export default function PersonalHome() {
 
-    // TODO: 취소버튼 다시 만들어야함? / 시골 위치 우선으로 뜨게 하기
+    // TODO: 취소버튼 다시 만들어야함? / 랭킹 시스템 구현
 
     const auth = getAuth();
     const [searchText, setSearchText] = useState("");
@@ -69,7 +70,7 @@ export default function PersonalHome() {
 
     useEffect(() => {
         if (!userLoading && userData) {
-            if (userData.location == null) {
+            if (userData.location == null && userData.type === 'personal') {
                 setLocationModal(true)
                 return;
             }
@@ -77,6 +78,27 @@ export default function PersonalHome() {
             setUserLocation(location);
         }
     }, [userData, userLoading]);
+
+    const getRecruitingJobsByCatagory = () => {
+        let filtered = [...recruitingJobs].filter(job => job.category === catagoryModalTitle);
+
+        // ! 핵심 기능 --> 시골 지역 위로 올리기
+        filtered.sort((a, b) => {
+            const locA = location_name.find(l => l.name === a.location);
+            const locB = location_name.find(l => l.name === b.location);
+
+            const isCountryA = locA ? locA.countryside : false;
+            const isCountryB = locB ? locB.countryside : false;
+
+            return Number(isCountryB) - Number(isCountryA);
+        });
+        return filtered;
+    }
+
+    const isCountryside = (locationName: string) => {
+        const loc = location_name.find(l => l.name === locationName);
+        return loc ? loc.countryside : false;
+    };
 
     const onPressLocationModalButton = () => {
         WriteUserLocationData(auth.currentUser?.uid, userLocation);
@@ -151,10 +173,7 @@ export default function PersonalHome() {
                             keyExtractor={(item) => item.id} 
                             data={myAppliedJobs} 
                             renderItem={({item}) => (
-                                <TouchableOpacity 
-                                    style={style.job_card}
-                                    onPress={() => handleCancel(item)}
-                                >
+                                <TouchableOpacity style={style.job_card} onPress={() => handleCancel(item)}>
                                     <View>
                                         <Text style={{fontWeight:'bold', fontSize: 18}}>{item.title}</Text>
                                         <Text>카테고리: {item.category}</Text>
@@ -171,6 +190,13 @@ export default function PersonalHome() {
                                 </TouchableOpacity>
                         )}/>
                     }
+                </View>
+
+                <View style={style.portfolio_container}>
+                    <Text style={style.work_title}>랭킹 보기</Text>
+                    <TouchableOpacity style={{padding: 10, backgroundColor: "orange"}} onPress={() => {navigate("/(tabs)/ranking")}}>
+                        <Text style={{color: "white"}}>보러가기</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={style.portfolio_container}>
@@ -194,15 +220,18 @@ export default function PersonalHome() {
                     
                     <FlatList
                         keyExtractor={(item) => item.id} 
-                        data={recruitingJobs.filter(job => job.category === catagoryModalTitle)} 
+                        data={getRecruitingJobsByCatagory()} // recruitingJobs.filter(job => job.category === catagoryModalTitle) 
                         ListEmptyComponent={<Text style={{alignSelf:'center'}}>현재 모집중인 공고가 없습니다.</Text>}
                         renderItem={({item}) => (
                             <TouchableOpacity style={style.job_card} onPress={() => openTodo(item)}>
-                                <Text style={{fontSize:18, fontWeight:'bold'}}>{item.title}</Text>
-                                <Text>급여: {item.money}원</Text>
-                                <Text>설명: {item.description}</Text>
-                                <Text>지역: {item.location}</Text>
-                                <Text>난이도: {item.difficulty}</Text>
+                                <View>
+                                    <Text style={{fontSize:18, fontWeight:'bold'}}>{item.title}</Text>
+                                    <Text>급여: {item.money}원</Text>
+                                    <Text>설명: {item.description}</Text>
+                                    <Text>지역: {item.location}</Text>
+                                    <Text>난이도: {item.difficulty}</Text>
+                                </View>
+                                <Text style={{fontSize: 18, fontWeight: 'bold', color: "orange"}}>{isCountryside(item.location) ? "추천 ★" : ""}</Text>
                             </TouchableOpacity>
                     )}/>
 
@@ -332,7 +361,8 @@ const style = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#ddd',
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
+        justifyContent: "space-between"
     }
 })
 

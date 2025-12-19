@@ -32,7 +32,6 @@ const catagory_exp_map = {
   "IT·웹 관련 업무": 0,
 }
 
-// 데이터 읽기 훅 (기존 유지)
 export function useFirebaseData(path) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,8 +49,7 @@ export function useFirebaseData(path) {
 
   return { data, loading };
 }
-
-// 유저 타입 저장 (기존 유지)
+                                                                                                                                                                                                                                                                                                                                    
 export function WriteUserInfoData(uid, type) {
   const database = getDatabase();
   set(ref(database, 'userInfo/' + uid), {
@@ -73,7 +71,7 @@ export function WriteUserLocationData(uid, location) {
   })
 }
 
-// Job 관련 
+// Job 관련
 export function createJob(firmUid, title, category, money, description, difficulty, location) {
   const database = getDatabase();
   const newJobRef = push(ref(database, 'jobs'));
@@ -95,7 +93,6 @@ export function createJob(firmUid, title, category, money, description, difficul
 export function applyJob(jobId, applicantUid) {
   const database = getDatabase();
   
-  // 해당 Job ID의 경로를 찾아 업데이트
   update(ref(database, `jobs/${jobId}`), {
     status: 'matched',      // 상태 변경
     applicantId: applicantUid // 지원자 기록
@@ -124,12 +121,14 @@ export function submitJob(jobId) {
   })
 }
 
-export function completeJob(userUid, jobId, rating, difficulty, catagory) {
+export function completeJob(userUid, jobId, rating, difficulty, catagory, isCountrySide) {
   const database = getDatabase();
 
   update(ref(database, `jobs/${jobId}`), {
     status: 'completed',
   });
+
+  console.log("시골지역 확인: " + isCountrySide)
 
   const userRef = ref(database, `userInfo/${userUid}`);
   
@@ -137,26 +136,27 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory) {
     if (snapshot.exists()) {
       const userData = snapshot.val();
       const currentExp = userData.exp || 0;
+      const currentCountrysideExp = userData.countrysideExp || 0;
       let currentCatagoryExp = userData.catagoryExp || {...catagory_exp_map};
 
       const diff_multiplier = (difficulty === 1) ? 1.0 : (difficulty === 2) ? 1.5 : (difficulty === 3) ? 2.0 : (difficulty === 4) ? 3.0 : 5.0;
       const rating_multiplier = (rating === 5) ? 1.2 : (rating === 4) ? 1.0 : (rating === 3) ? 0.8 : 0;
-      const gainedExp = (100 * diff_multiplier) * rating_multiplier;
-      const newTotalExp = currentExp + gainedExp;
-      
-      console.log(gainedExp);
+      const gainedExp = isCountrySide ? (100 * diff_multiplier) * rating_multiplier * 1.3 : (100 * diff_multiplier) * rating_multiplier;
+      // ! 시골지역 --> 포인트 30% 증가
+      // ! 수치 곱하는 등의 기준은 무엇인지 알아야함
+      console.log("얻은 EXP: " + gainedExp);
+      console.log("원래 EXP: " + (100 * diff_multiplier) * rating_multiplier);
 
       currentCatagoryExp[catagory] += gainedExp;
       console.log(currentCatagoryExp)
       
       update(userRef, {
-        exp: newTotalExp,
-        catagoryExp: currentCatagoryExp
+        exp: currentExp + gainedExp,
+        catagoryExp: currentCatagoryExp,
+        countrysideExp: isCountrySide ? currentCountrysideExp + gainedExp : 0
       });
     }
   }).catch((error) => {
     console.error("경험치 업데이트 실패:", error);
   });
-
-  // TODO: EXP를 catagory에 맞게 해당 카테고리에도 추가하기 --> 기초 데이터 자료가 필요함
 }
