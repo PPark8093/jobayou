@@ -1,4 +1,4 @@
-import { cancelJob, completeJob, createJob, deleteJob, useFirebaseData } from "@/useFirebaseData"; // 수정된 함수 임포트
+import { completeJob, createJob, deleteJob, useFirebaseData } from "@/useFirebaseData"; // 수정된 함수 임포트
 import { Picker } from "@react-native-picker/picker";
 import { navigate } from "expo-router/build/global-state/routing";
 import { getAuth } from "firebase/auth";
@@ -47,14 +47,15 @@ export default function FirmHome() {
     const [todoMoney, setTodoMoney] = useState("");
     const [todoDescription, setTodoDescription] = useState("");
     const [todoDifficulty, setTodoDifficuty] = useState(0);
-    const [todoLocation, setTodoLocation] = useState("");
+    const [todoLocation, setTodoLocation] = useState("경상북도 영양군");
 
     const [evaluateModal, setEvaluateModal] = useState(false);
     const [evaluateJob, setEvaludateJob] = useState<any>();
+    const [evaluateRating, setEvaluateRating] = useState<any>();
+    const [evaluateReview, setEvaluateReview] = useState("");
 
     useEffect(() => {
         if (!loading && data) {
-            // [로직 변경] 전체 jobs 중에서 내가 올린 것만 필터링
             const filteredJobs = Object.entries(data)
                 .map(([key, value]: [string, any]) => ({ id: key, ...value }))
                 .filter((job) => job.firmId === auth.currentUser?.uid);
@@ -66,7 +67,6 @@ export default function FirmHome() {
         }
     }, [data, loading]);
 
-    // [함수 변경] 공고 생성
     const onPressRequestButton = () => {
         if(!todoName || !todoMoney || !todoLocation) {
             Alert.alert("오류", "모든 내용을 입력해주세요.");
@@ -85,7 +85,7 @@ export default function FirmHome() {
     const onPressEvaluateButton = (job: any) => {
         // 작업 평가 (모달 vs 단순 확인 버튼?)
         Alert.alert("평가", "해당 작업이 완료되었습니까?", [
-            { text: "아니오", onPress: () => {cancelJob(job.id)}},
+            { text: "아니오"},
             { text: "예", onPress: () => {rateAndCompleteJob(job)}},
         ])
     }
@@ -96,9 +96,14 @@ export default function FirmHome() {
     }
 
     const rateAndCompleteJob2 = (rating: any) => {
-        // 1. 데이터가 존재하는지 먼저 확인 (안전장치)
         if (!evaluateJob || !evaluateJob.applicantId) {
             Alert.alert("오류", "지원자 정보를 찾을 수 없습니다.");
+            return;
+        }
+
+        if (evaluateReview === "" || evaluateReview === null) {
+            Alert.alert("오류", "사용자 평가를 적어주세요.");
+            console.log(evaluateReview);
             return;
         }
 
@@ -107,10 +112,8 @@ export default function FirmHome() {
         const loc = location_name.find(l => l.name === evaluateJob.location);
         console.log(true)
         
-        // 2. 함수 실행
-        completeJob(evaluateJob.applicantId, evaluateJob.id, rating, evaluateJob.difficulty, evaluateJob.category, loc?.countryside);
+        completeJob(evaluateJob.applicantId, evaluateJob.id, rating, evaluateJob.difficulty, evaluateJob.category, loc?.countryside, evaluateReview);
         
-        // 3. 모달 닫기 및 초기화
         setEvaluateModal(false);
         setEvaludateJob(null); 
     }
@@ -133,7 +136,6 @@ export default function FirmHome() {
             <View style={style.main}>
                 <TextInput value={searchText} onChangeText={setSearchText} style={style.search_bar} placeholder="검색"/>
                 
-                {/* 카테고리 영역 (기능상 단순 표시용이라면 유지) */}
                 <View style={style.catagory_container}>
                     <Text style={style.catagory_title}>카테고리</Text>
                     <FlatList 
@@ -227,18 +229,20 @@ export default function FirmHome() {
             <Modal animationType="slide" transparent={false} visible={evaluateModal} onRequestClose={() => {setEvaluateModal(false)}}>
                 <View style={modal_style.container}>
                     <Text style={modal_style.title}>사용자 평가하기</Text>
+                    <TextInput style={{borderWidth: 1, margin: 40, backgroundColor: "white", fontSize: 18}} onChangeText={setEvaluateReview} value={evaluateReview} placeholder="유저 평가"/>
                     <View>
-                        <Rating ratingBackgroundColor="transparent" ratingCount={5} onFinishRating={rateAndCompleteJob2}/>
+                        <Rating ratingBackgroundColor="transparent" ratingCount={5} onFinishRating={rating => setEvaluateRating(rating)}/>
                     </View>
+                    <TouchableOpacity style={{backgroundColor: "orange", alignItems: "center", margin: 40, padding: 10}} onPress={() => {rateAndCompleteJob2(evaluateRating)}}>
+                        <Text style={{color: "white", fontSize: 18}}>제출하기</Text>
+                    </TouchableOpacity>
                 </View>
             </Modal>
         </View>
     )
 }
 
-// 스타일은 기존과 거의 동일하지만 job_card 추가
 const style = StyleSheet.create({
-    // ... 기존 스타일 유지 ...
     container: {
         flex: 1,
         display: "flex",

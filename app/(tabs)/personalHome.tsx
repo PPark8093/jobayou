@@ -1,4 +1,4 @@
-import { applyJob, cancelJob, submitJob, useFirebaseData, WriteUserLocationData } from "@/useFirebaseData";
+import { applyJob, cancelJob, CompleteJobReward, submitJob, useFirebaseData, WriteUserLocationData } from "@/useFirebaseData";
 import { Picker } from "@react-native-picker/picker";
 import { navigate } from "expo-router/build/global-state/routing";
 import { getAuth } from "firebase/auth";
@@ -32,7 +32,7 @@ const location_name = [
 
 export default function PersonalHome() {
 
-    // TODO: 취소버튼 다시 만들어야함? / 랭킹 시스템 구현
+    // TODO: 취소버튼 다시 만들어야함? / 랭킹 시스템 구현 / 보상 수령 후 행동 구현?
 
     const auth = getAuth();
     const [searchText, setSearchText] = useState("");
@@ -43,6 +43,8 @@ export default function PersonalHome() {
     const [myAppliedJobs, setMyAppliedJobs] = useState<any[]>([]);
     const [recruitingJobs, setRecruitingJobs] = useState<any[]>([]); 
 
+    const [myRewardJobs, setMyRewardJobs] = useState<any[]>([]);
+
     const [catagoryModal, setCatagoryModal] = useState(false)
     const [catagoryModalTitle, setCatagoryModalTitle] = useState("")
 
@@ -51,6 +53,8 @@ export default function PersonalHome() {
 
     const [userLocation, setUserLocation] = useState("");
     const [locationModal, setLocationModal] = useState(false);
+
+    const [rewardModal, setRewardModal] = useState(false);
 
     useEffect(() => {
         if (!loading && data) {
@@ -61,6 +65,9 @@ export default function PersonalHome() {
 
             const available = allJobs.filter(job => job.status === 'recruiting');
             setRecruitingJobs(available);
+
+            const rewardJobs = allJobs.filter(job => job.reward === 'yet' && job.applicantId === auth.currentUser?.uid && job.status === 'completed');
+            setMyRewardJobs(rewardJobs);
 
         } else if (!loading && !data) {
             setMyAppliedJobs([]);
@@ -138,6 +145,16 @@ export default function PersonalHome() {
         ])
     }
 
+    const onPressGetReward = (job: any) => {
+        Alert.alert("보상 받기", "이 보상을 받으시겠습니까?", [
+            { text: "예", onPress: () => getReward(job)}
+        ])
+    }
+
+    const getReward = (job: any) => {
+        CompleteJobReward(job.id);
+    }
+
     return (
         <View style={style.container}>
             <View style={style.header}>
@@ -192,10 +209,10 @@ export default function PersonalHome() {
                     }
                 </View>
 
-                <View style={style.portfolio_container}>
-                    <Text style={style.work_title}>랭킹 보기</Text>
-                    <TouchableOpacity style={{padding: 10, backgroundColor: "orange"}} onPress={() => {navigate("/(tabs)/ranking")}}>
-                        <Text style={{color: "white"}}>보러가기</Text>
+                <View style={[style.portfolio_container, {display: myRewardJobs.length !== 0 ? "flex" : "none"}]}>
+                    <Text style={style.work_title}>못 받은 보상이 {myRewardJobs.length}개 있습니다</Text>
+                    <TouchableOpacity style={{padding: 10, backgroundColor: "orange"}} onPress={() => {setRewardModal(true)}}>
+                        <Text style={{color: "white"}}>받으러 가기</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -275,6 +292,25 @@ export default function PersonalHome() {
                     </View>
                     <TouchableOpacity onPress={onPressLocationModalButton} style={modal_style.request_button}>
                         <Text style={{color: "white", fontSize: 20, alignSelf: "center"}}>정하기</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+
+            <Modal animationType="slide" transparent={false} visible={rewardModal} onRequestClose={() => {setRewardModal(false)}}>
+                <View style={{flex:1, padding: 20, paddingTop: 50}}>
+                    <Text style={{fontSize:24, marginBottom: 20, alignSelf:'center'}}>보상 받기</Text>
+
+                    <FlatList data={myRewardJobs} renderItem={({item}) => (
+                        <TouchableOpacity style={style.job_card} onPress={() => {onPressGetReward(item)}}>
+                                <View>
+                                    <Text style={{fontSize:18, fontWeight:'bold'}}>{item.title}</Text>
+                                    <Text>보상: {item.reward}</Text>
+                                </View>
+                            </TouchableOpacity>
+                    )}/>
+
+                    <TouchableOpacity onPress={() => setRewardModal(false)} style={{marginTop: 20, padding:15, backgroundColor:'#ddd', alignItems:'center'}}>
+                        <Text>닫기</Text>
                     </TouchableOpacity>
                 </View>
             </Modal>

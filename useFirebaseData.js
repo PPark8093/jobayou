@@ -121,12 +121,18 @@ export function submitJob(jobId) {
   })
 }
 
-export function completeJob(userUid, jobId, rating, difficulty, catagory, isCountrySide) {
+export function completeJob(userUid, jobId, rating, difficulty, catagory, isCountrySide, review) {
   const database = getDatabase();
 
   update(ref(database, `jobs/${jobId}`), {
     status: 'completed',
   });
+
+  if (isCountrySide) {
+    update(ref(database, `jobs/${jobId}`), {
+      reward: 'yet',
+    })
+  }
 
   console.log("시골지역 확인: " + isCountrySide)
 
@@ -136,8 +142,12 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory, isCoun
     if (snapshot.exists()) {
       const userData = snapshot.val();
       const currentExp = userData.exp || 0;
+      let currentUserReviews = Array.isArray(userData.reviews) 
+        ? [...userData.reviews] // 초기
+        : (userData.reviews ? Object.values(userData.reviews) : []); // 이후 값 있을 때
+      console.log("aa", currentUserReviews)
       const currentCountrysideExp = userData.countrysideExp || 0;
-      let currentCatagoryExp = userData.catagoryExp || {...catagory_exp_map};
+      let currentCatagoryExp = userData.catagoryExp ? {...userData.catagoryExp} : {...catagory_exp_map};
 
       const diff_multiplier = (difficulty === 1) ? 1.0 : (difficulty === 2) ? 1.5 : (difficulty === 3) ? 2.0 : (difficulty === 4) ? 3.0 : 5.0;
       const rating_multiplier = (rating === 5) ? 1.2 : (rating === 4) ? 1.0 : (rating === 3) ? 0.8 : 0;
@@ -148,15 +158,25 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory, isCoun
       console.log("원래 EXP: " + (100 * diff_multiplier) * rating_multiplier);
 
       currentCatagoryExp[catagory] += gainedExp;
-      console.log(currentCatagoryExp)
+      console.log(currentCatagoryExp);
+      currentUserReviews.push(review);
       
       update(userRef, {
         exp: currentExp + gainedExp,
         catagoryExp: currentCatagoryExp,
-        countrysideExp: isCountrySide ? currentCountrysideExp + gainedExp : 0
+        countrysideExp: isCountrySide ? currentCountrysideExp + gainedExp : currentCountrysideExp,
+        reviews: currentUserReviews,
       });
     }
   }).catch((error) => {
     console.error("경험치 업데이트 실패:", error);
   });
+}
+
+export function CompleteJobReward(jobId) {
+  const database = getDatabase();
+
+  update(ref(database, `jobs/${jobId}`), {
+    reward: 'received'
+  })
 }
