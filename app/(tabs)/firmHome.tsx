@@ -135,22 +135,6 @@ export default function FirmHome() {
             </View>
             <View style={style.main}>
                 <TextInput value={searchText} onChangeText={setSearchText} style={style.search_bar} placeholder="검색"/>
-                
-                <View style={style.catagory_container}>
-                    <Text style={style.catagory_title}>카테고리</Text>
-                    <FlatList 
-                        style={style.catagory_list} 
-                        contentContainerStyle={{justifyContent: "center", alignItems: "center", gap: 10}} 
-                        columnWrapperStyle={{gap: 11, justifyContent: "center", alignItems: "center"}} 
-                        numColumns={3} 
-                        data={catagory_name} 
-                        renderItem={({item}) => (
-                        <TouchableOpacity style={style.catagory_button}>
-                            <Text>{item.name}</Text>
-                        </TouchableOpacity>
-                    )}/>
-                </View>
-
                 <View style={style.work_container}>
                     <Text style={style.work_title}>내가 올린 공고</Text>
                     {loading ? <Text>로딩중...</Text> : myJobs.length === 0 ? 
@@ -182,11 +166,17 @@ export default function FirmHome() {
                             )}
                         />
                     }
+                </View>
 
-                    <TouchableOpacity style={style.work_make_button} onPress={() => {setAddTodoModal(true)}}>
-                        <Text style={style.work_make_button_text}>작업 요청하기</Text>
+                <View style={style.work_container}>
+                    <Text style={style.work_title}>채용하기</Text>
+                    <TouchableOpacity style={{backgroundColor: "orange",}} onPress={() => navigate("/(tabs)/hire")}>
+                        <Text style={{color: "white", fontSize: 18, alignSelf: "center", padding: 10}}>채용하기</Text>
                     </TouchableOpacity>
                 </View>
+                <TouchableOpacity style={style.work_make_button} onPress={() => {setAddTodoModal(true)}}>
+                    <Text style={style.work_make_button_text}>작업 요청하기</Text>
+                </TouchableOpacity>
             </View>
 
             <Modal animationType="slide" transparent={false} visible={addTodoModal} onRequestClose={() => {setAddTodoModal(false)}}>
@@ -229,7 +219,7 @@ export default function FirmHome() {
             <Modal animationType="slide" transparent={false} visible={evaluateModal} onRequestClose={() => {setEvaluateModal(false)}}>
                 <View style={modal_style.container}>
                     <Text style={modal_style.title}>사용자 평가하기</Text>
-                    <TextInput style={{borderWidth: 1, margin: 40, backgroundColor: "white", fontSize: 18}} onChangeText={setEvaluateReview} value={evaluateReview} placeholder="유저 평가"/>
+                    <TextInput style={{borderWidth: 1, margin: 40, backgroundColor: "white", fontSize: 18}} onChangeText={setEvaluateReview} value={evaluateReview} placeholder="(유저가 발휘한 역량 등)"/>
                     <View>
                         <Rating ratingBackgroundColor="transparent" ratingCount={5} onFinishRating={rating => setEvaluateRating(rating)}/>
                     </View>
@@ -304,14 +294,15 @@ const style = StyleSheet.create({
     },
     work_make_button: {
         backgroundColor: "orange",
-        marginHorizontal: 30,
-        marginVertical: 10,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 1,
         borderColor: "orange",
-        paddingVertical: 10
+        paddingVertical: 10,
+        position: 'absolute',
+        bottom: 10,
+        width: "100%"
     },
     work_make_button_text: {
         fontSize: 20,

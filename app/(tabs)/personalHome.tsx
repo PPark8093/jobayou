@@ -1,4 +1,4 @@
-import { applyJob, cancelJob, CompleteJobReward, submitJob, useFirebaseData, WriteUserLocationData } from "@/useFirebaseData";
+import { applyJob, cancelJob, CompleteJobReward, submitJob, useFirebaseData, WriteUserLocationData, WriteUserNickNameData } from "@/useFirebaseData";
 import { Picker } from "@react-native-picker/picker";
 import { navigate } from "expo-router/build/global-state/routing";
 import { getAuth } from "firebase/auth";
@@ -32,7 +32,7 @@ const location_name = [
 
 export default function PersonalHome() {
 
-    // TODO: 취소버튼 다시 만들어야함? / 랭킹 시스템 구현 / 보상 수령 후 행동 구현?
+    // TODO: 취소버튼 다시 만들어야함? / 랭킹 시스템 구현 / 보상 수령 후 행동 구현? / 작업물 파일 업로드 기능
 
     const auth = getAuth();
     const [searchText, setSearchText] = useState("");
@@ -56,6 +56,12 @@ export default function PersonalHome() {
 
     const [rewardModal, setRewardModal] = useState(false);
 
+    const [userNickName, setuserNickName] = useState("")
+    const [nicknameModal, setNickNameModal] = useState(false);
+
+    const [recommendedList, setRecommendedList] = useState([]);
+    const [autoTaskModal, setAutoTaskModal] = useState(false);
+
     useEffect(() => {
         if (!loading && data) {
             const allJobs = Object.entries(data).map(([key, value]: [string, any]) => ({ id: key, ...value }));
@@ -67,7 +73,7 @@ export default function PersonalHome() {
             setRecruitingJobs(available);
 
             const rewardJobs = allJobs.filter(job => job.reward === 'yet' && job.applicantId === auth.currentUser?.uid && job.status === 'completed');
-            setMyRewardJobs(rewardJobs);
+            setMyRewardJobs(rewardJobs); 
 
         } else if (!loading && !data) {
             setMyAppliedJobs([]);
@@ -83,8 +89,22 @@ export default function PersonalHome() {
             }
             const location = userData.location;
             setUserLocation(location);
+
+            if (userData.nickname == null && userData.type === 'personal') {
+                setNickNameModal(true);
+                return;
+            }
+            const nickname_temp = userData.nickname;
+            setuserNickName(nickname_temp);
         }
     }, [userData, userLoading]);
+
+    useEffect(() => {
+        if (!loading && userData && recruitingJobs.length > 0) {
+            const sortedJobs = orderAutoJobs();
+            setRecommendedList(sortedJobs);
+        }
+    }, [userData, recruitingJobs, loading]);
 
     const getRecruitingJobsByCatagory = () => {
         let filtered = [...recruitingJobs].filter(job => job.category === catagoryModalTitle);
@@ -110,6 +130,15 @@ export default function PersonalHome() {
     const onPressLocationModalButton = () => {
         WriteUserLocationData(auth.currentUser?.uid, userLocation);
         setLocationModal(false)
+    }
+
+    const onPressNickNameModalButton = () => {
+        if (userNickName === null || userNickName === "") {
+            Alert.alert("오류", "닉네임을 입력하세요");
+            return;
+        }
+        WriteUserNickNameData(auth.currentUser?.uid, userNickName);
+        setNickNameModal(false)
     }
 
     const openCatagory = (catagory: string) => {
@@ -155,10 +184,42 @@ export default function PersonalHome() {
         CompleteJobReward(job.id);
     }
 
+    const orderAutoJobs = () => {
+        if (!userData || !userData.catagoryExp) return [];
+
+        const jobs = [...recruitingJobs];
+        
+        const myExpKeys = Object.keys(userData.catagoryExp);
+        if (myExpKeys.length === 0) return []; 
+
+        const myBestSkill = myExpKeys.reduce((a, b) => 
+            userData.catagoryExp[a] > userData.catagoryExp[b] ? a : b
+        );
+
+        const result = jobs.map((job) => {
+            let score = 0;
+            
+            if ((job.category || job.catagory) === myBestSkill) score += 50;
+
+            if (job.location === userLocation) score += 30;
+
+            const locationInfo = location_name.find(l => l.name === job.location);
+            if (locationInfo?.countryside) score += 20;
+
+            if ((Date.now() - job.createdAt) <= 259200000) score += 10;
+
+            return { ...job, score };
+        });
+
+        result.sort((a, b) => b.score - a.score);
+
+        return result;
+    }
+
     return (
         <View style={style.container}>
             <View style={style.header}>
-                <Text>사용자: {auth.currentUser?.email}{"\n"}거주지역: {userLocation}</Text>
+                <Text>사용자: {auth.currentUser?.email}  (닉네임: {userNickName}) {"\n"}거주지역: {userLocation}</Text>
                 <TouchableOpacity onPress={() => {auth.signOut(); navigate("/(auth)/signin")}}>
                     <Text>로그아웃</Text>
                 </TouchableOpacity>
@@ -178,6 +239,21 @@ export default function PersonalHome() {
                             <TouchableOpacity style={style.catagory_button} onPress={() => openCatagory(item.name)}>
                                 <Text>{item.name}</Text>
                             </TouchableOpacity>
+                    )}/>
+                </View>
+
+                {/* // ! 적합도 점수 기준 정하기 등 */}
+                <View style={[style.catagory_container, {gap: 10, marginTop: 30}]}>
+                    <Text style={style.catagory_title}>추천 작업</Text>
+                    <FlatList data={recommendedList} renderItem={({item}) => (
+                        <TouchableOpacity style={{backgroundColor: "white", padding: 15, paddingHorizontal: 30, borderWidth: 1, display: "flex", justifyContent: "space-between", flexDirection: "row", gap: 30}}>
+                            <View>
+                                <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.title}</Text>
+                                <Text>위치: {item.location}</Text>
+                                <Text>급여: {item.money}원</Text>
+                            </View>
+                            <Text style={{fontSize: 15, color: "orange", fontWeight: "bold"}}>적합도 {item.score}점</Text>
+                        </TouchableOpacity>
                     )}/>
                 </View>
 
@@ -296,6 +372,20 @@ export default function PersonalHome() {
                 </View>
             </Modal>
 
+            <Modal animationType="slide" transparent={false} visible={nicknameModal} onRequestClose={() => {setNickNameModal(false)}}>
+                <View style={modal_style.container}>
+                    <Text style={modal_style.title}>닉네임 정하기</Text>
+                    <View style={modal_style.input_container}>
+                        <View style={{borderWidth: 1, marginTop: 10, backgroundColor: "white"}}>
+                            <TextInput value={userNickName} onChangeText={setuserNickName}/>
+                        </View>
+                    </View>
+                    <TouchableOpacity onPress={onPressNickNameModalButton} style={modal_style.request_button}>
+                        <Text style={{color: "white", fontSize: 20, alignSelf: "center"}}>정하기</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+
             <Modal animationType="slide" transparent={false} visible={rewardModal} onRequestClose={() => {setRewardModal(false)}}>
                 <View style={{flex:1, padding: 20, paddingTop: 50}}>
                     <Text style={{fontSize:24, marginBottom: 20, alignSelf:'center'}}>보상 받기</Text>
@@ -310,6 +400,18 @@ export default function PersonalHome() {
                     )}/>
 
                     <TouchableOpacity onPress={() => setRewardModal(false)} style={{marginTop: 20, padding:15, backgroundColor:'#ddd', alignItems:'center'}}>
+                        <Text>닫기</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+            
+            <Modal animationType="slide" transparent={false} visible={autoTaskModal} onRequestClose={() => {setAutoTaskModal(false)}}>
+                <View style={{flex:1, padding: 20, paddingTop: 50}}>
+                    <Text style={{fontSize:24, marginBottom: 20, alignSelf:'center'}}>추천 작업</Text>
+
+                    <View></View>
+
+                    <TouchableOpacity onPress={() => setAutoTaskModal(false)} style={{marginTop: 20, padding:15, backgroundColor:'#ddd', alignItems:'center'}}>
                         <Text>닫기</Text>
                     </TouchableOpacity>
                 </View>

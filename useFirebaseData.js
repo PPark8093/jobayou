@@ -54,6 +54,8 @@ export function WriteUserInfoData(uid, type) {
   const database = getDatabase();
   set(ref(database, 'userInfo/' + uid), {
     type: type,
+    exp: 0,
+    countrysideExp: 0
   })
 }
 
@@ -68,6 +70,20 @@ export function WriteUserLocationData(uid, location) {
   const database = getDatabase();
   update(ref(database, 'userInfo/' + uid), {
     location: location
+  })
+}
+
+export function WriteUserNickNameData(uid, nickname) {
+  const database = getDatabase();
+  update(ref(database, 'userInfo/' + uid), {
+    nickname: nickname,
+  })
+}
+
+export function WriteUserIntroductionTextData(uid, text) {
+  const database = getDatabase();
+  update(ref(database, 'userInfo/' + uid), {
+    introductionText: text,
   })
 }
 
@@ -126,6 +142,8 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory, isCoun
 
   update(ref(database, `jobs/${jobId}`), {
     status: 'completed',
+    review: review,
+    rating: rating
   });
 
   if (isCountrySide) {
@@ -142,10 +160,6 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory, isCoun
     if (snapshot.exists()) {
       const userData = snapshot.val();
       const currentExp = userData.exp || 0;
-      let currentUserReviews = Array.isArray(userData.reviews) 
-        ? [...userData.reviews] // 초기
-        : (userData.reviews ? Object.values(userData.reviews) : []); // 이후 값 있을 때
-      console.log("aa", currentUserReviews)
       const currentCountrysideExp = userData.countrysideExp || 0;
       let currentCatagoryExp = userData.catagoryExp ? {...userData.catagoryExp} : {...catagory_exp_map};
 
@@ -159,13 +173,11 @@ export function completeJob(userUid, jobId, rating, difficulty, catagory, isCoun
 
       currentCatagoryExp[catagory] += gainedExp;
       console.log(currentCatagoryExp);
-      currentUserReviews.push(review);
       
       update(userRef, {
         exp: currentExp + gainedExp,
         catagoryExp: currentCatagoryExp,
         countrysideExp: isCountrySide ? currentCountrysideExp + gainedExp : currentCountrysideExp,
-        reviews: currentUserReviews,
       });
     }
   }).catch((error) => {

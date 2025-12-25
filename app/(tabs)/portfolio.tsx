@@ -1,10 +1,9 @@
-import { useFirebaseData } from '@/useFirebaseData';
+import { useFirebaseData, WriteUserIntroductionTextData } from '@/useFirebaseData';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { navigate } from "expo-router/build/global-state/routing";
 import { getAuth } from "firebase/auth";
 import { useEffect, useState } from 'react';
-// [수정] ScrollView 추가
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Progress from 'react-native-progress';
 
 const catagory_name = [
@@ -48,7 +47,10 @@ export default function Portfolio() {
     const [countrysideExp, setCountrysideExp] = useState(0);
 
     const { data, loading } = useFirebaseData("jobs");
-    const [myCompletedJobs, setMyCompletedJobs] = useState<any[]>([]); 
+    const [myCompletedJobs, setMyCompletedJobs] = useState<any[]>([]);
+
+    const [introductionText, setIntroductonText] = useState("");
+    const [showChangeIntroductionText, setShowChangeIntroductionText] = useState(false);
 
     useEffect(() => {
         if (!loading && data) {
@@ -65,10 +67,10 @@ export default function Portfolio() {
             setUserExp(userData.exp);
             setCatagoryExp(Object.entries(userData.catagoryExp));
             setCountrysideExp(userData.countrysideExp);
+            setIntroductonText(userData.introductionText || "");
         }
     }, [userData, userLoading])
 
-    // [수정] 레벨 계산 함수 분리 (가독성 향상)
     const getLevelProgress = (exp: any) => {
         if (exp > 30000) return 1.1;
         if (exp > 20000) return 0.9;
@@ -84,6 +86,16 @@ export default function Portfolio() {
 
     const currentProgress = getLevelProgress(userExp);
     const currentCountrysideProgress = getLevelProgress(countrysideExp);
+
+    const onChangeIntroductionText = (text: string) => {
+        setShowChangeIntroductionText(true);
+        setIntroductonText(text);
+    }
+
+    const onPressChangeIntroductionText = () => {
+        setShowChangeIntroductionText(false);
+        WriteUserIntroductionTextData(auth.currentUser?.uid, introductionText);
+    }
 
     return (
         <View style={{flex: 1}}> 
@@ -108,8 +120,6 @@ export default function Portfolio() {
                 <Text style={{fontSize: 25, fontWeight: "bold", marginBottom: 10}}>카테고리별 숙련도</Text>
                 <View style={{ marginBottom: 20 }}>
                     {catagory_name.map((item) => {
-                        // [중요] 실제 DB 데이터(userData)에서 해당 카테고리 경험치를 가져옴
-                        // userData가 없거나 해당 카테고리 값이 없으면 0 처리
                         const expValue = userData?.catagoryExp?.[item.name] || 0;
                         
                         return (
@@ -129,6 +139,14 @@ export default function Portfolio() {
                 <TouchableOpacity style={{backgroundColor: "orange", alignItems: "center", padding: 15, marginTop: 10, borderRadius: 8}}>
                     <Text style={{color: "white", fontSize: 20, fontWeight: "bold"}}>이력서 생성하기</Text>
                 </TouchableOpacity>
+                
+                <View style={{marginVertical: 10}}>
+                    <Text style={{fontSize: 25, fontWeight: "bold", marginBottom: 10}}>한줄 소개</Text>
+                    <TextInput style={{backgroundColor: "white", borderWidth: 1, fontSize: 18}} value={introductionText} onChangeText={(text) => onChangeIntroductionText(text)} placeholder='한줄 소개'/>
+                    <TouchableOpacity style={{display: showChangeIntroductionText ? "flex" : "none"}} onPress={onPressChangeIntroductionText}>
+                        <Text style={{fontSize: 15, fontWeight: "bold"}}>변경내용 저장하기</Text>
+                    </TouchableOpacity>
+                </View>
 
                 <Text style={{fontSize: 25, fontWeight: "bold", marginVertical: 10, marginTop: 30}}>수행 완료한 업무들</Text>
                 
@@ -144,6 +162,7 @@ export default function Portfolio() {
                                     <Text style={{fontWeight:'bold', fontSize: 16}}>{item.title}</Text>
                                     <Text style={{color: 'gray', marginTop: 4}}>{item.category}</Text>
                                     <Text style={{marginTop: 4}}>급여: {item.money}원</Text>
+                                    <Text>평가: {item.review}</Text>
                                 </View>
                             </TouchableOpacity>
                         ))}
@@ -156,7 +175,7 @@ export default function Portfolio() {
 
 const style = StyleSheet.create({
     header: {
-        height: 60, // 헤더 높이 고정
+        height: 60,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -171,20 +190,20 @@ const style = StyleSheet.create({
     },
     main: {
         padding: 20,
-        flex: 1, // 전체 화면 채우기
+        flex: 1,
     },
     skills_item: {
         display: "flex",
         flexDirection: "row",
-        marginBottom: 15, // 간격 조정
+        marginBottom: 15,
         gap: 10,
         justifyContent: "space-between",
         alignItems: 'center'
     },
     skills_title: {
         color: "black",
-        fontSize: 16, // 글자 크기 조정
-        width: 100, // 제목 정렬을 위해 너비 고정
+        fontSize: 16,
+        width: 100,
         flexShrink: 1
     },
     job_card: {
@@ -194,7 +213,6 @@ const style = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#ddd',
-        // 그림자 효과 (선택사항)
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
