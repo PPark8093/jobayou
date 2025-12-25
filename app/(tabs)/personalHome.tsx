@@ -246,7 +246,7 @@ export default function PersonalHome() {
                 <View style={[style.catagory_container, {gap: 10, marginTop: 30}]}>
                     <Text style={style.catagory_title}>추천 작업</Text>
                     <FlatList data={recommendedList} renderItem={({item}) => (
-                        <TouchableOpacity style={{backgroundColor: "white", padding: 15, paddingHorizontal: 30, borderWidth: 1, display: "flex", justifyContent: "space-between", flexDirection: "row", gap: 30}}>
+                        <TouchableOpacity style={{backgroundColor: "white", padding: 15, paddingHorizontal: 30, borderWidth: 1, display: "flex", justifyContent: "space-between", flexDirection: "row", gap: 30}} onPress={() => openTodo(item)}>
                             <View>
                                 <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.title}</Text>
                                 <Text>위치: {item.location}</Text>
@@ -295,6 +295,13 @@ export default function PersonalHome() {
                 <View style={style.portfolio_container}>
                     <Text style={style.work_title}>내 포트폴리오 보기</Text>
                     <TouchableOpacity style={{padding: 10, backgroundColor: "orange"}} onPress={() => {navigate("/(tabs)/portfolio")}}>
+                        <Text style={{color: "white"}}>보러가기</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={style.portfolio_container}>
+                    <Text style={style.work_title}>랭킹</Text>
+                    <TouchableOpacity style={{padding: 10, backgroundColor: "orange"}} onPress={() => {navigate("/(tabs)/ranking")}}>
                         <Text style={{color: "white"}}>보러가기</Text>
                     </TouchableOpacity>
                 </View>

@@ -61,9 +61,32 @@ export function WriteUserInfoData(uid, type) {
 
 export function WriteUserBadgeData(uid, badgeData) {
   const database = getDatabase();
-  update(ref(database, 'userInfo/' + uid), {
-    badges: badgeData
-  })
+
+  const userRef = ref(database, `userInfo/${uid}`);
+  
+  get(userRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      const userData = snapshot.val();
+      const currentBadges = userData.badges ? userData.badges : [];
+
+      if (!Array.isArray(currentBadges)) {
+          currentBadges = Object.values(currentBadges);
+      }
+
+      if (currentBadges.includes(badgeData)) {
+          console.log("이미 보유한 배지입니다.");
+          return;
+      }
+
+      currentBadges.push(badgeData)
+      
+      update(userRef, {
+        badges: currentBadges,
+      });
+    }
+  }).catch((error) => {
+    console.error("배지 업데이트 실패:", error);
+  });
 }
 
 export function WriteUserLocationData(uid, location) {
